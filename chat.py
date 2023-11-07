@@ -4,9 +4,8 @@ from openai import OpenAI
 from scipy.spatial.distance import cosine
 import ast
 
-client = OpenAI()
-# Setting up OpenAI API key
-client.api_key = st.secrets["openai_api_key"]
+client = OpenAI(api_key=st.secrets["openai_api_key"])
+
 
 # Constants
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -45,7 +44,7 @@ if user_input:
         model= EMBEDDING_MODEL, 
         input= f'{user_input}'
         )
-    print(response.data[0].embedding)
+
     user_embedding = response.data[0].embedding
 
     # Find the top two most similar text chunks
