@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
-import openai
+from openai import OpenAI
 from scipy.spatial.distance import cosine
 import ast
 
+client = OpenAI()
 # Setting up OpenAI API key
-openai.api_key = st.secrets["openai_api_key"]
+client.api_key = st.secrets["openai_api_key"]
 
 # Constants
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -40,8 +41,12 @@ user_input = st.text_input("Vad letar du efter?")
 
 if user_input:
     # Generate embedding for user input
-    response = openai.Embedding.create(model=EMBEDDING_MODEL, input=f'{user_input}')
-    user_embedding = response['data'][0]['embedding']
+    response = client.embeddings.create(
+        model= EMBEDDING_MODEL, 
+        input= f'{user_input}'
+        )
+    print(response.data[0].embedding)
+    user_embedding = response.data[0].embedding
 
     # Find the top two most similar text chunks
     similar_texts, similarities = find_top_similar_texts(user_embedding, df)
@@ -74,13 +79,14 @@ if user_input:
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
-        for response in openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model=GPT_MODEL,
             messages=[{"role": "system", "content": instructions_prompt}],
-            temperature=0.3,
-            max_tokens=1000,
-            stream=True,
-        ):
-            full_response += response.choices[0].delta.get("content", "")
+            stream=True
+        )
+        for chunk in completion:
+            if chunk.choices[0].finish_reason == "stop": 
+                message_placeholder.markdown(full_response)
+                break
+            full_response += chunk.choices[0].delta.content
             message_placeholder.markdown(full_response + "▌")
-        message_placeholder.markdown(full_response)
