@@ -9,7 +9,7 @@ openai.api_key = st.secrets["openai_api_key"]
 
 # Constants
 EMBEDDING_MODEL = "text-embedding-ada-002"
-GPT_MODEL = "gpt-4"
+GPT_MODEL = "gpt-4-1106-preview"
 
 # Load the CSV file with embeddings
 @st.cache_data
@@ -28,7 +28,7 @@ def cosine_similarity(embedding1, embedding2):
     return 1 - cosine(embedding1, embedding2)
 
 # Function to find the top two most similar text chunks
-def find_top_similar_texts(query_embedding, df, top_n=2):
+def find_top_similar_texts(query_embedding, df, top_n=3):
     similarities = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
     top_idxs = similarities.nlargest(top_n).index
     return df.iloc[top_idxs], similarities[top_idxs].tolist()
@@ -51,15 +51,21 @@ if user_input:
     Användaren är i Falkenbergs Kommun och vill hitta information om: {user_input}
     Baserat på dokumenten som hittades, här är informationen för att hjälpa användaren:
 
-    Dokument 1:
+    Dokument:
     {similar_texts.iloc[0]['document']}
     URL: {similar_texts.iloc[0]['source']}
     Likhetsscore: {similarities[0]}
     
-    Dokument 2:
+    Dokument:
     {similar_texts.iloc[1]['document']}
     URL: {similar_texts.iloc[1]['source']}
     Likhetsscore: {similarities[1]}
+
+    Dokument:
+    {similar_texts.iloc[2]['document']}
+    URL: {similar_texts.iloc[2]['source']}
+    Likhetsscore: {similarities[2]}
+    
     
     Hjälp användaren att få svar på sin fråga. Redovisa var du har fått informationen som du baserar ditt svar på, och hänvisa med länk till källan.
     """
