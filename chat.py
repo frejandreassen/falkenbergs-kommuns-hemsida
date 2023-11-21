@@ -52,7 +52,8 @@ if user_input:
     
     # Prepare the prompt for GPT-4 in Swedish
     instructions_prompt = f"""
-    Användaren är i Falkenbergs Kommun och vill hitta information om: {user_input}
+    Användarinput: {user_input}
+    Du är en hjälpsam assistent som hjälper användaren att hitta information om Falkenbergs kommun. 
     Baserat på dokumenten som hittades, här är informationen för att hjälpa användaren:
 
     Dokument:
@@ -71,7 +72,7 @@ if user_input:
     Likhetsscore: {similarities[2]}
     
     
-    Hjälp användaren att få svar på sin fråga. Redovisa var du har fått informationen som du baserar ditt svar på, och hänvisa med länk till källan.
+    Hjälp användaren att få svar på sin fråga. Redovisa var du har fått informationen som du baserar ditt svar på, och hänvisa med länk till källan. Redovisa endast om dokumenten är relevant. Svara på samma språk som användarinput.
     """
     
     # Stream the GPT-4 reply

@@ -1,14 +1,15 @@
 import openai
 import pandas as pd
 import time
+import streamlit as st
 
-openai.api_key = "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"  # Replace with your actual OpenAI API key
+openai.api_key = st.secrets["openai_api_key"]  # Replace with your actual OpenAI API key
 EMBEDDING_MODEL = "text-embedding-ada-002"
 BATCH_SIZE = 1000  # Adjust as needed; note the OpenAI API has a limit on the number of tokens per request
 SLEEP_TIME = 1  # in seconds
 
 # Read the CSV file
-input_file = 'output_file.csv'  # Replace with the path to your CSV file
+input_file = 'output_processed_internwebben.csv'  # Replace with the path to your CSV file
 df = pd.read_csv(input_file)
 
 # Extract text chunks from the CSV data
@@ -25,14 +26,14 @@ for batch_start in range(0, len(text_chunks), BATCH_SIZE):
     
     try:
         # Make API request
-        response = openai.Embedding.create(model=EMBEDDING_MODEL, input=batch)
+        response = openai.embeddings.create(model=EMBEDDING_MODEL, input=batch)
         
         # Double-check embeddings are in the same order as input
-        for i, be in enumerate(response['data']):
-            assert i == be['index']
+        for i, be in enumerate(response.data):
+            assert i == be.index
         
         # Extract and store embeddings
-        batch_embeddings = [e['embedding'] for e in response['data']]
+        batch_embeddings = [e.embedding for e in response.data]
         embeddings.extend(batch_embeddings)
         
     except Exception as e:
@@ -45,7 +46,7 @@ for batch_start in range(0, len(text_chunks), BATCH_SIZE):
 df['embedding'] = embeddings
 
 # Save the data with embeddings to a new CSV file
-output_file = 'output_with_embeddings.csv'
+output_file = 'output_with_embeddings_internwebben.csv'
 df.to_csv(output_file, index=False)
 
 print(f"Data with embeddings has been saved to {output_file}")
