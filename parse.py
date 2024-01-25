@@ -32,7 +32,7 @@ def download_and_extract_pdf_text(url):
         return ""
 
 # Load the CSV file
-df = pd.read_csv("Falkenbergs_kommun.csv")
+df = pd.read_csv("Falkenbergs_kommun_202401.csv")
 
 # Initialize a list to store the results
 results = []
