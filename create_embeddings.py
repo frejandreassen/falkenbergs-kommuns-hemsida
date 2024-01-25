@@ -9,7 +9,7 @@ BATCH_SIZE = 1000  # Adjust as needed; note the OpenAI API has a limit on the nu
 SLEEP_TIME = 1  # in seconds
 
 # Read the CSV file
-input_file = 'output_processed_internwebben.csv'  # Replace with the path to your CSV file
+input_file = 'output_file.csv'  # Replace with the path to your CSV file
 df = pd.read_csv(input_file)
 
 # Extract text chunks from the CSV data
@@ -46,7 +46,7 @@ for batch_start in range(0, len(text_chunks), BATCH_SIZE):
 df['embedding'] = embeddings
 
 # Save the data with embeddings to a new CSV file
-output_file = 'output_with_embeddings_internwebben.csv'
+output_file = 'output_with_embeddings.csv'
 df.to_csv(output_file, index=False)
 
 print(f"Data with embeddings has been saved to {output_file}")
