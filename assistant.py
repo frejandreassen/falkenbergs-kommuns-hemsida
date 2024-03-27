@@ -4,9 +4,12 @@ import pandas as pd
 from openai import OpenAI
 from scipy.spatial.distance import cosine
 import ast
+from streamlit_star_rating import st_star_rating
 
 client = OpenAI(api_key=st.secrets["openai_api_key"])
-
+headers = {"Content-Type": "application/json"}
+api_url = "https://nav.utvecklingfalkenberg.se/items/falkenbergs_kommuns_hemsida"
+params = {"access_token": st.secrets["directus_token"]}
 
 # Constants
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -24,22 +27,54 @@ def load_data():
 
 df = load_data()
 
+# Define the function to update the rating
+def update_rating(rating):
+    print('update_rating')
+    print(rating)
+    if 'record_id' in st.session_state and st.session_state['record_id']:
+        update_data = {"user_rating": rating}
+        update_url = f"{api_url}/{st.session_state['record_id']}"
+        headers = {"Content-Type": "application/json"}
+        params = {"access_token": st.secrets["directus_token"]}
+        print(update_url)
+        
+        update_response = requests.patch(update_url, json=update_data, headers=headers, params=params)
+
+        if update_response.status_code == 200:
+            st.success("Tack för din feedback!")
+
+            # st.session_state['response_completed'] = False
+            # st.rerun()
+        else:
+            st.error("Något gick fel. Tack för din feedback!")
+            # st.rerun()
+            # Here you might consider logging the error or notifying an administrator
+
 # Function to calculate cosine similarity
 def cosine_similarity(embedding1, embedding2):
     return 1 - cosine(embedding1, embedding2)
 
-# Function to find the top two most similar text chunks
-def find_top_similar_texts(query_embedding, df, top_n=3):
+def find_top_similar_texts(query_embedding, df, top_n=3, similarity_threshold=0.5):
+    # Calculate similarities for each row in the dataframe
     similarities = df['embedding'].apply(lambda x: cosine_similarity(x, query_embedding))
-    top_idxs = similarities.nlargest(top_n).index
-    return df.iloc[top_idxs], similarities[top_idxs].tolist()
+    # Filter results by the similarity threshold
+    filtered_similarities = similarities[similarities >= similarity_threshold]
+   
+    if filtered_similarities.empty:
+        return pd.DataFrame(), []  # Return empty DataFrame and list if no similarities meet the threshold
+    # Get top N indices based on the filtered similarities
+    top_idxs = filtered_similarities.nlargest(top_n).index
+    print(filtered_similarities.nlargest(top_n))
+    return df.iloc[top_idxs], filtered_similarities.loc[top_idxs].tolist()
 
 # Streamlit UI
 st.title("Fråga Falkenbergs Kommuns Hemsida")
+with st.form(key='user_query_form', clear_on_submit=True):
+    user_input = st.text_input("Vad letar du efter?", key="user_input")
+    st.caption("Svaren genereras av en AI bot, som kan begå misstag. Informationen är senast uppdaterad 25 januari 2024.")
+    submit_button = st.form_submit_button("Sök")
 
-user_input = st.text_input("Vad letar du efter?", key="user_input")
-st.caption("Svaren genereras av en AI bot, som kan begå misstag. Informationen är senast uppdaterat 25 januari 2024.")
-if user_input:
+if submit_button and user_input:
     # Generate embedding for user input
     response = client.embeddings.create(
         model= EMBEDDING_MODEL, 
@@ -80,6 +115,7 @@ if user_input:
     Svara på samma språk som användarinput.
     """
     
+    st.markdown(f'#### {user_input}')
     # Stream the GPT-4 reply
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
@@ -90,12 +126,27 @@ if user_input:
             stream=True
         )
         for chunk in completion:
+            st.session_state['response_completed'] = False
             if chunk.choices[0].finish_reason == "stop": 
                 message_placeholder.markdown(full_response)
+                st.session_state['response_completed'] = True
                 break
             full_response += chunk.choices[0].delta.content
             message_placeholder.markdown(full_response + "▌")
     
+    # POST request to save initial response
+    data = {"prompt": user_input, "response": full_response}
+    response = requests.post(api_url, json=data, headers=headers, params=params)
+
+    
+    if response.status_code == 200:
+        response_data = response.json()
+        st.session_state['record_id'] = response_data['data']['id']  # Save the record ID for later update
+        # st.success("Tack för din feedback!")
+    else:
+        st.error("Något gick fel. Försök igen senare.")
+
+if 'response_completed' in st.session_state and st.session_state['response_completed']:
     st.markdown("### Hur nöjd är du med svaret?")
     col1, col2, col3, col4, col5 = st.columns(5)
     rating_buttons = [
@@ -112,21 +163,4 @@ if user_input:
             user_rating = i + 1  # User rating is 1-indexed
     
     if user_rating is not None:
-        # Assume `full_response` contains the final AI-generated response
-        data = {
-            "prompt": user_input,
-            "response": full_response,
-            "user_rating": user_rating
-        }
-        headers = {"Content-Type": "application/json"}
-        api_url = "https://nav.utvecklingfalkenberg.se/items/falkenbergs_kommuns_hemsida"
-        params = {"access_token": st.secrets["directus_token"]}  # Use your actual access token here
-
-        response = requests.post(api_url, json=data, headers=headers, params=params)
-        
-        if response.status_code == 200:
-            st.success("Tack för din feedback!")
-            # Clear the user input after successful submission
-            st.session_state.user_input = ""
-        else:
-            st.error("Något gick fel. Försök igen senare.")
+        update_rating(user_rating)
