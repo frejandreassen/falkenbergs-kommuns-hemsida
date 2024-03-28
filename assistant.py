@@ -48,7 +48,7 @@ def find_top_similar_texts(query_embedding, df, top_n=3, similarity_threshold=0.
     return df.iloc[top_idxs], filtered_similarities.loc[top_idxs].tolist()
 
 # Streamlit UI
-st.title("Fråga Falkenbergs Kommuns Hemsida")
+st.title("Fråga Falkenbergs kommuns webbplats")
 with st.form(key='user_query_form', clear_on_submit=True):
     user_input = st.text_input("Vad letar du efter?", key="user_input")
     st.caption("Svaren genereras av en AI bot, som kan begå misstag. Informationen är senast uppdaterad 25 januari 2024.")
