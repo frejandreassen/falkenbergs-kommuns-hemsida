@@ -28,27 +28,7 @@ def load_data():
 df = load_data()
 
 # Define the function to update the rating
-def update_rating(rating):
-    print('update_rating')
-    print(rating)
-    if 'record_id' in st.session_state and st.session_state['record_id']:
-        update_data = {"user_rating": rating}
-        update_url = f"{api_url}/{st.session_state['record_id']}"
-        headers = {"Content-Type": "application/json"}
-        params = {"access_token": st.secrets["directus_token"]}
-        print(update_url)
-        
-        update_response = requests.patch(update_url, json=update_data, headers=headers, params=params)
 
-        if update_response.status_code == 200:
-            st.success("Tack för din feedback!")
-
-            # st.session_state['response_completed'] = False
-            # st.rerun()
-        else:
-            st.error("Något gick fel. Tack för din feedback!")
-            # st.rerun()
-            # Here you might consider logging the error or notifying an administrator
 
 # Function to calculate cosine similarity
 def cosine_similarity(embedding1, embedding2):
@@ -147,20 +127,27 @@ if submit_button and user_input:
         st.error("Något gick fel. Försök igen senare.")
 
 if 'response_completed' in st.session_state and st.session_state['response_completed']:
-    st.markdown("### Hur nöjd är du med svaret?")
-    col1, col2, col3, col4, col5 = st.columns(5)
-    rating_buttons = [
-        col1.button("1"),
-        col2.button("2"),
-        col3.button("3"),
-        col4.button("4"),
-        col5.button("5"),
-    ]
 
-    user_rating = None
-    for i, button in enumerate(rating_buttons):
-        if button:
-            user_rating = i + 1  # User rating is 1-indexed
-    
-    if user_rating is not None:
-        update_rating(user_rating)
+    with st.form(key='user_feedback_form', clear_on_submit=True):
+        stars = st_star_rating("Hur nöjd är du med svaret", maxValue=5, defaultValue=3, key="rating")
+        user_feedback = st.text_area("Vad var bra/mindre bra?")
+        feedback_submit_button = st.form_submit_button("Sök")
+
+    if feedback_submit_button and user_input:
+        if 'record_id' in st.session_state and st.session_state['record_id']:
+            update_data = {"user_rating": stars, "user_feedback": user_feedback}
+            update_url = f"{api_url}/{st.session_state['record_id']}"
+            headers = {"Content-Type": "application/json"}
+            params = {"access_token": st.secrets["directus_token"]}
+            print(update_url)
+            
+            update_response = requests.patch(update_url, json=update_data, headers=headers, params=params)
+
+            if update_response.status_code == 200:
+                st.success("Tack för din feedback!")
+                st.session_state['response_completed'] = False
+                st.rerun()
+            else:
+                st.error("Något gick fel. Tack för din feedback!")
+                # st.rerun()
+                # Here you might consider logging the error or notifying an administrator
