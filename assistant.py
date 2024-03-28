@@ -51,7 +51,7 @@ def find_top_similar_texts(query_embedding, df, top_n=3, similarity_threshold=0.
 st.title("Fråga Falkenbergs kommuns webbplats")
 with st.form(key='user_query_form', clear_on_submit=True):
     user_input = st.text_input("Vad letar du efter?", key="user_input")
-    st.caption("Svaren genereras av en AI bot, som kan begå misstag. Informationen är senast uppdaterad 25 januari 2024.")
+    st.caption("Svaren genereras av en AI-bot, som kan begå misstag. Frågor och svar lagras i utvecklingssyfte. Skriv inte personuppgifter i fältet.")
     submit_button = st.form_submit_button("Sök")
 
 if submit_button and user_input:
@@ -131,7 +131,7 @@ if 'response_completed' in st.session_state and st.session_state['response_compl
     with st.form(key='user_feedback_form', clear_on_submit=True):
         stars = st_star_rating("Hur nöjd är du med svaret", maxValue=5, defaultValue=3, key="rating")
         user_feedback = st.text_area("Vad var bra/mindre bra?")
-        feedback_submit_button = st.form_submit_button("Sök")
+        feedback_submit_button = st.form_submit_button("Skicka")
 
     if feedback_submit_button and user_input:
         if 'record_id' in st.session_state and st.session_state['record_id']:
