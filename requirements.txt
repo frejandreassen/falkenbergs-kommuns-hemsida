@@ -1,5 +1,5 @@
 streamlit
 requests
 openai
-streamlit-star-rating
+st-star-rating
 qdrant-client
