@@ -1,12 +1,8 @@
 import streamlit as st
 import requests
-import pandas as pd
 from openai import OpenAI
-from scipy.spatial.distance import cosine
-import ast
 from streamlit_star_rating import st_star_rating
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import VectorParams, Distance
 
 collection_name="FalkenbergsKommunsHemsida"
 headers = {"Content-Type": "application/json"}
