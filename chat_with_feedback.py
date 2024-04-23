@@ -8,7 +8,7 @@ from streamlit_star_rating import st_star_rating
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import VectorParams, Distance
 
-collection_name="FalkenbergbergsKommunsHemsida"
+collection_name="FalkenbergsKommunsHemsida"
 headers = {"Content-Type": "application/json"}
 api_url = "https://nav.utvecklingfalkenberg.se/items/falkenbergs_kommuns_hemsida"
 params = {"access_token": st.secrets["directus_token"]}
@@ -30,9 +30,8 @@ def search_collection(qdrant_client, collection_name, user_query_embedding):
     response = qdrant_client.search(
         collection_name=collection_name,
         query_vector=user_query_embedding,
-        limit=3,
-        with_payload=True,
-        score_threshold=0.4
+        limit=5,
+        with_payload=True
     )
     return response  # Adjust this line if the structure is different
 
@@ -54,7 +53,7 @@ if submit_button and user_input:
         {"chunk": result.payload['chunk'], "title": result.payload['title'], "url": result.payload['url'], "score": result.score}
         for result in search_results
     ]
-    print(similar_texts)
+    # print(similar_texts)
     # Prepare the prompt for GPT-4 in Swedish
     instructions_prompt = f"""
     Användarinput: {user_input}
@@ -76,12 +75,22 @@ if submit_button and user_input:
     {similar_texts[2]['chunk']}
     URL: {similar_texts[2]['url']}
     Likhetsscore: {similar_texts[2]['score']}
+
+        Dokument:
+    {similar_texts[3]['chunk']}
+    URL: {similar_texts[3]['url']}
+    Likhetsscore: {similar_texts[3]['score']}
+
+        Dokument:
+    {similar_texts[4]['chunk']}
+    URL: {similar_texts[4]['url']}
+    Likhetsscore: {similar_texts[4]['score']}
     
     
     Hjälp användaren att få svar på sin fråga.
     Redovisa endast om dokumenten är relevant. 
     Om du använder dokument, hänvisa med länk till källan. 
-    Svara på samma språk som användarinput.
+    Reply in the same language as: {user_input}.
     """
     
     st.markdown(f'#### {user_input}')
