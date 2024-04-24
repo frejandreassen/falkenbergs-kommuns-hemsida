@@ -18,10 +18,14 @@ def fetch_sitemap(url):
 def parse_sitemap(xml_data):
     root = ET.fromstring(xml_data)
     urls = []
-    for url in root.findall("{http://www.sitemaps.org/schemas/sitemap/0.9}url"):
-        loc = url.find("{http://www.sitemaps.org/schemas/sitemap/0.9}loc").text
+    lastmods = []
+    ns = {'sitemaps': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+    for url in root.findall(".//sitemaps:url", ns):
+        loc = url.find("sitemaps:loc", ns).text
+        lastmod = url.find("sitemaps:lastmod", ns).text if url.find("sitemaps:lastmod", ns) is not None else None
         urls.append(loc)
-    return urls
+        lastmods.append(lastmod)
+    return urls, lastmods
 
 def setup_driver():
     service = Service(ChromeDriverManager().install())
@@ -59,7 +63,7 @@ def fetch_pdf_content(pdf_url):
         if os.path.exists(pdf_file_path):
             os.remove(pdf_file_path)
 
-def scrape_page(url, driver, existing_urls):
+def scrape_page(url, lastmod, driver, existing_urls):
     driver.get(url)
     time.sleep(1)  # Wait for JavaScript to render
     soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -80,12 +84,14 @@ def scrape_page(url, driver, existing_urls):
         pdf_text = fetch_pdf_content(pdf_url)
         pdf_data = {
             "url": pdf_url,
+            "last_modified": lastmod,
             "title": link.text.strip() or "No title",
             "texts": pdf_text
         }
         save_to_json(pdf_data, existing_urls=existing_urls)  # Save each PDF data immediately
     return {
         "url": url,
+        "last_modified": lastmod,
         "title": title,
         "texts": texts
     }
@@ -114,11 +120,11 @@ def main(sitemap_url, update_mode='update_all'):
     existing_urls = load_existing_urls()
     driver = setup_driver()
     sitemap = fetch_sitemap(sitemap_url)
-    urls = parse_sitemap(sitemap)
-    for url in urls:
+    urls, lastmods = parse_sitemap(sitemap)
+    for url, lastmod in zip(urls, lastmods):
         if update_mode == 'add_missing' and url in existing_urls:
             continue  # Skip scraping if URL exists and mode is 'add_missing'
-        page_data = scrape_page(url, driver, existing_urls=existing_urls)
+        page_data = scrape_page(url, lastmod, driver, existing_urls=existing_urls)
         save_to_json(page_data, update_mode=update_mode, existing_urls=existing_urls)
     driver.quit()
 

@@ -4,7 +4,8 @@ from openai import OpenAI
 from streamlit_star_rating import st_star_rating
 from qdrant_client import QdrantClient
 
-collection_name="FalkenbergsKommunsHemsida"
+# collection_name="FalkenbergsKommunsHemsida"
+collection_name="FalkenbergsKommunsHemsida_1000char_chunks"
 headers = {"Content-Type": "application/json"}
 api_url = "https://nav.utvecklingfalkenberg.se/items/falkenbergs_kommuns_hemsida"
 params = {"access_token": st.secrets["directus_token"]}
@@ -34,8 +35,8 @@ def search_collection(qdrant_client, collection_name, user_query_embedding):
 # Streamlit UI
 st.title("Fråga Falkenbergs kommuns webbplats")
 with st.form(key='user_query_form', clear_on_submit=True):
-    user_input = st.text_input("Vad letar du efter?", key="user_input")
-    st.caption("Svaren genereras av en AI-bot, som kan begå misstag. Frågor och svar lagras i utvecklingssyfte. Skriv inte personuppgifter i fältet.")
+    user_input = st.text_input("Vad letar du efter?", key="user_input", placeholder="När börjar sommarlovet för Tullbroskolan?")
+    st.caption("Svaren genereras av en AI-bot, som kan begå misstag. Svaren baseras på tillgänglig information på kommunens hemsida. Frågor och svar lagras i utvecklingssyfte. Skriv inte personuppgifter i fältet.")
     submit_button = st.form_submit_button("Sök")
 
 if submit_button and user_input:
@@ -49,7 +50,7 @@ if submit_button and user_input:
         {"chunk": result.payload['chunk'], "title": result.payload['title'], "url": result.payload['url'], "score": result.score}
         for result in search_results
     ]
-    # print(similar_texts)
+    print(similar_texts)
     # Prepare the prompt for GPT-4 in Swedish
     instructions_prompt = f"""
     Användarinput: {user_input}
