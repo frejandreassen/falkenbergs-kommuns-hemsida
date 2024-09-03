@@ -5,7 +5,7 @@ from streamlit_star_rating import st_star_rating
 from qdrant_client import QdrantClient
 
 # collection_name="FalkenbergsKommunsHemsida"
-collection_name="FalkenbergsKommunsHemsida_1000char_chunks"
+collection_name="FalkenbergsKommunsHemsida"
 headers = {"Content-Type": "application/json"}
 api_url = "https://nav.utvecklingfalkenberg.se/items/falkenbergs_kommuns_hemsida"
 params = {"access_token": st.secrets["directus_token"]}
@@ -13,7 +13,7 @@ qdrant_api_key = st.secrets['qdrant_api_key']
 qdrant_url = 'https://qdrant.utvecklingfalkenberg.se'
 qdrant_client = QdrantClient(url=qdrant_url, port=443, https=True, api_key=qdrant_api_key)
 openai_client = OpenAI(api_key=st.secrets["openai_api_key"])
-GPT_MODEL = "gpt-4-turbo"
+GPT_MODEL = "gpt-4o"
 
 def generate_embeddings(text):
     response = openai_client.embeddings.create(
@@ -27,7 +27,7 @@ def search_collection(qdrant_client, collection_name, user_query_embedding):
     response = qdrant_client.search(
         collection_name=collection_name,
         query_vector=user_query_embedding,
-        limit=5,
+        limit=10,
         with_payload=True
     )
     return response  # Adjust this line if the structure is different
@@ -50,7 +50,7 @@ if submit_button and user_input:
         {"chunk": result.payload['chunk'], "title": result.payload['title'], "url": result.payload['url'], "score": result.score}
         for result in search_results
     ]
-    print(similar_texts)
+    # print(similar_texts)
     # Prepare the prompt for GPT-4 in Swedish
     instructions_prompt = f"""
     Användarinput: {user_input}

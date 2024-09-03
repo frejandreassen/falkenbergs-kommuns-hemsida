@@ -9,6 +9,7 @@ import re
 import json
 import requests
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
 
 def fetch_sitemap(url):
     response = requests.get(url)
@@ -86,7 +87,8 @@ def scrape_page(url, lastmod, driver, existing_urls):
             "url": pdf_url,
             "last_modified": lastmod,
             "title": link.text.strip() or "No title",
-            "texts": pdf_text
+            "texts": pdf_text,
+            "source_url": url
         }
         save_to_json(pdf_data, existing_urls=existing_urls)  # Save each PDF data immediately
     return {
@@ -103,20 +105,25 @@ def load_existing_urls(filename='scraped_data.json'):
         return {item['url']: item for item in existing_data}
     except FileNotFoundError:
         return {}
-
-def save_to_json(data, filename='scraped_data.json', update_mode='update_all', existing_urls=None):
+def save_to_json(data, filename='scraped_data.json', update_mode='update_all', existing_urls=None, update_since=None):
     if existing_urls is None:
         existing_urls = {}
 
     if update_mode == 'add_missing' and data['url'] in existing_urls:
         return  # Skip saving if URL exists in 'add_missing' mode
+    
+    if update_mode == 'update_since':
+        if data['url'] in existing_urls:
+            existing_lastmod = datetime.strptime(existing_urls[data['url']]['last_modified'], '%Y-%m-%dT%H:%M:%SZ')
+            if existing_lastmod <= update_since:
+                return  # Skip saving if last_modified is not later than update_since date
 
     existing_urls[data['url']] = data  # Update or add new data
 
     with open(filename, 'w') as f:
         json.dump(list(existing_urls.values()), f, indent=4)
 
-def main(sitemap_url, update_mode='update_all'):
+def main(sitemap_url, update_mode='update_all', update_since=None):
     existing_urls = load_existing_urls()
     driver = setup_driver()
     sitemap = fetch_sitemap(sitemap_url)
@@ -124,25 +131,26 @@ def main(sitemap_url, update_mode='update_all'):
     for url, lastmod in zip(urls, lastmods):
         if update_mode == 'add_missing' and url in existing_urls:
             continue  # Skip scraping if URL exists and mode is 'add_missing'
+        
+        if update_mode == 'update_since':
+            lastmod_date = datetime.strptime(lastmod, '%Y-%m-%dT%H:%M:%SZ')
+            if lastmod_date <= update_since:
+                continue  # Skip scraping if last_modified is not later than update_since date
+        
         page_data = scrape_page(url, lastmod, driver, existing_urls=existing_urls)
-        save_to_json(page_data, update_mode=update_mode, existing_urls=existing_urls)
+        save_to_json(page_data, update_mode=update_mode, existing_urls=existing_urls, update_since=update_since)
     driver.quit()
+
 
 # Example sitemap data
 sitemap_url = 'https://kommun.falkenberg.se/index.php?option=com_jmap&view=sitemap&format=xml'
-main(sitemap_url)
 
+# For 'add_missing' mode
+# main(sitemap_url, update_mode='add_missing')
 
-# def main_specific_page(start_url, update_mode='update_all'):
-#     existing_urls = load_existing_urls()
-#     driver = setup_driver()
-#     if update_mode == 'add_missing' and start_url in existing_urls:
-#         print("URL already scraped under 'add_missing' mode.")
-#     else:
-#         page_data = scrape_page(start_url, driver, existing_urls=existing_urls)
-#         save_to_json(page_data, update_mode=update_mode, existing_urls=existing_urls)
-#     driver.quit()
+# For 'update_all' mode
+# main(sitemap_url, update_mode='update_all')
 
-# # Example specific start page
-# start_url = 'https://kommun.falkenberg.se/om-kommunen/styrande-dokument-forfattningssamling/lokala-styrdokument'
-# main_specific_page(start_url)
+# For 'update_since' mode
+update_since_date = datetime(2024, 5, 1)  # Update all pages modified since May 1, 2024
+main(sitemap_url, update_mode='update_since', update_since=update_since_date)
